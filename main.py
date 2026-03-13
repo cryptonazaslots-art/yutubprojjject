@@ -4,36 +4,35 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 
 async def fabricar_video():
-    # 1. Guion (Corregimos la URL para que no de error 404)
-    # Probamos con la v1 (más estable) y el modelo flash
-    url_g = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={os.getenv('GEMINI_API')}"
-    p = {"contents": [{"parts":[{"text": "Escribe un dato curioso del espacio de 40 palabras. Solo el texto."}]}]}
+    # 1. Guion (URL actualizada a la versión 1.5 oficial)
+    api_key = os.getenv('GEMINI_API')
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
     
-    response = requests.post(url_g, json=p).json()
+    payload = {
+        "contents": [{
+            "parts": [{"text": "Escribe un dato curioso del espacio de 35 palabras. Solo el texto, sin títulos ni introducciones."}]
+        }]
+    }
     
-    # Si falla, intentamos con la ruta alternativa
-    if 'error' in response:
-        print(f"Reintentando con ruta alternativa...")
-        url_g = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={os.getenv('GEMINI_API')}"
-        response = requests.post(url_g, json=p).json()
-
-    if 'candidates' not in response:
-        print(f"Error final de Gemini: {response}")
+    res = requests.post(url, json=payload).json()
+    
+    if 'candidates' not in res:
+        print(f"Error de Gemini: {res}")
         return
 
-    script = response['candidates'][0]['content']['parts'][0]['text']
-    print(f"Guion listo: {script}")
+    script = res['candidates'][0]['content']['parts'][0]['text']
+    print(f"Guion: {script}")
     
     # 2. Voz
     await edge_tts.Communicate(script, "es-AR-TomasNeural").save("audio.mp3")
     
-    # 3. Video
+    # 3. Video (Pexels)
     h = {"Authorization": os.getenv('PEXELS_API')}
     v = requests.get("https://api.pexels.com/videos/search?query=galaxy&per_page=1", headers=h).json()
     v_url = v['videos'][0]['video_files'][0]['link']
     with open("video.mp4", "wb") as f: f.write(requests.get(v_url).content)
 
-    # 4. Montaje (Forzamos formato vertical para que sea Short)
+    # 4. Montaje Vertical (Short)
     os.system("ffmpeg -y -i video.mp4 -i audio.mp3 -vf 'crop=ih*(9/16):ih' -c:a aac -shortest final.mp4")
     
     # 5. Subir a YouTube
@@ -43,17 +42,13 @@ async def fabricar_video():
     
     yt = build("youtube", "v3", credentials=creds)
     yt.videos().insert(
-        part="snippet,status", 
+        part="snippet,status",
         body={
-            "snippet": {
-                "title": "Dato Espacial #shorts", 
-                "description": "#space #curiosidades",
-                "categoryId": "22"
-            }, 
+            "snippet": {"title": "Dato Espacial Diario #shorts", "description": "#espacio #ciencia", "categoryId": "22"},
             "status": {"privacyStatus": "public"}
         },
         media_body="final.mp4"
     ).execute()
-    print("¡VIDEO PUBLICADO!")
+    print("¡LISTO! Video en el canal.")
 
 if __name__ == "__main__": asyncio.run(fabricar_video())
