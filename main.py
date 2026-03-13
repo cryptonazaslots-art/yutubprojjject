@@ -4,17 +4,25 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 
 async def fabricar_video():
-    # 1. Guion con control de errores
-    url_g = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={os.getenv('GEMINI_API')}"
+    # 1. Guion (Corregimos la URL para que no de error 404)
+    # Probamos con la v1 (más estable) y el modelo flash
+    url_g = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={os.getenv('GEMINI_API')}"
     p = {"contents": [{"parts":[{"text": "Escribe un dato curioso del espacio de 40 palabras. Solo el texto."}]}]}
+    
     response = requests.post(url_g, json=p).json()
     
+    # Si falla, intentamos con la ruta alternativa
+    if 'error' in response:
+        print(f"Reintentando con ruta alternativa...")
+        url_g = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={os.getenv('GEMINI_API')}"
+        response = requests.post(url_g, json=p).json()
+
     if 'candidates' not in response:
-        print(f"Error de Gemini: {response}")
+        print(f"Error final de Gemini: {response}")
         return
 
     script = response['candidates'][0]['content']['parts'][0]['text']
-    print(f"Guion generado: {script}")
+    print(f"Guion listo: {script}")
     
     # 2. Voz
     await edge_tts.Communicate(script, "es-AR-TomasNeural").save("audio.mp3")
@@ -25,17 +33,27 @@ async def fabricar_video():
     v_url = v['videos'][0]['video_files'][0]['link']
     with open("video.mp4", "wb") as f: f.write(requests.get(v_url).content)
 
-    # 4. Montaje
-    os.system("ffmpeg -y -i video.mp4 -i audio.mp3 -c:v copy -c:a aac -shortest final.mp4")
+    # 4. Montaje (Forzamos formato vertical para que sea Short)
+    os.system("ffmpeg -y -i video.mp4 -i audio.mp3 -vf 'crop=ih*(9/16):ih' -c:a aac -shortest final.mp4")
     
-    # 5. Subir
+    # 5. Subir a YouTube
     info = json.loads(os.getenv('YT_TOKEN'))
     creds = Credentials.from_authorized_user_info(info)
     if creds.expired: creds.refresh(Request())
     
     yt = build("youtube", "v3", credentials=creds)
-    yt.videos().insert(part="snippet,status", body={"snippet": {"title": "Dato Espacial #shorts", "categoryId": "22"}, "status": {"privacyStatus": "public"}},
-        media_body="final.mp4").execute()
-    print("Video subido con éxito.")
+    yt.videos().insert(
+        part="snippet,status", 
+        body={
+            "snippet": {
+                "title": "Dato Espacial #shorts", 
+                "description": "#space #curiosidades",
+                "categoryId": "22"
+            }, 
+            "status": {"privacyStatus": "public"}
+        },
+        media_body="final.mp4"
+    ).execute()
+    print("¡VIDEO PUBLICADO!")
 
 if __name__ == "__main__": asyncio.run(fabricar_video())
