@@ -1,0 +1,24 @@
+name: Bot YouTube Diario
+on:
+  schedule:
+    - cron: '0 13 * * *'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with: {python-version: '3.9'}
+      - name: Install Tools
+        run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+          pip install requests edge-tts google-api-python-client google-auth-oauthlib
+      - name: Run Bot
+        env:
+          GEMINI_API: ${{ secrets.GEMINI_API }}
+          PEXELS_API: ${{ secrets.PEXELS_API }}
+          YT_TOKEN: ${{ secrets.YT_TOKEN }}
+        run: python main.py
