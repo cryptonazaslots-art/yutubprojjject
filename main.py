@@ -1,5 +1,5 @@
 import os, asyncio, json, edge_tts, requests
-import google.generativeai as genai
+import google.genai as genai
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2.credentials import Credentials
@@ -7,10 +7,9 @@ from google.auth.transport.requests import Request
 
 async def fabricar_video():
     try:
-        # 1. Guion con librería oficial
-        genai.configure(api_key=os.getenv('GEMINI_API'))
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        res = model.generate_content("Escribe un dato curioso del espacio de 30 palabras. Solo el texto.")
+        # 1. Guion con la librería ultra-actualizada
+        client = genai.Client(api_key=os.getenv('GEMINI_API'))
+        res = client.models.generate_content(model="gemini-1.5-flash", contents="Escribe un dato curioso del espacio de 30 palabras. Solo el texto.")
         script = res.text
         print(f"Guion: {script}")
 
