@@ -1,25 +1,42 @@
-name: ViralEngine_V2
+name: ViralEngine_V3
+
 on:
-  workflow_dispatch:
+  workflow_dispatch: # Permite ejecutarlo manualmente desde GitHub
   schedule:
+    - cron: '0 12 * * *'  # 09:00 Argentina
+    - cron: '0 18 * * *'  # 15:00 Argentina
     - cron: '30 23 * * *' # 20:30 Argentina
 
 jobs:
-  build:
+  publicar_short:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+
     steps:
-      - uses: actions/checkout@v4
-      - name: Setup Python
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install Dependencies
+
+      - name: Instalar dependencias del sistema
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Instalar dependencias de Python
         run: |
-          sudo apt-get update && sudo apt-get install -y ffmpeg
-          pip install requests edge-tts google-api-python-client google-auth-oauthlib google-genai
-      - name: Run Viral Engine
+          pip install --upgrade pip
+          pip install \
+            requests \
+            edge-tts \
+            google-api-python-client \
+            google-auth-oauthlib \
+            google-genai
+
+      - name: Ejecutar Viral Engine
         env:
           GEMINI_API: ${{ secrets.GEMINI_API }}
           PEXELS_API: ${{ secrets.PEXELS_API }}
-          YT_TOKEN: ${{ secrets.YT_TOKEN }}
+          YT_TOKEN:   ${{ secrets.YT_TOKEN }}
         run: python main.py
