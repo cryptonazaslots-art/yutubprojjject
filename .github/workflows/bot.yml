@@ -1,4 +1,4 @@
-name: ViralEngine_V7
+name: ViralEngine_V8
 
 on:
   workflow_dispatch:
@@ -30,7 +30,7 @@ jobs:
       - name: Instalar dependencias del sistema
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y ffmpeg
+          sudo apt-get install -y ffmpeg fonts-dejavu
 
       - name: Instalar dependencias de Python
         run: |
