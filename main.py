@@ -6,66 +6,51 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 import edge_tts
 
-# --- CONFIGURACIÓN ---
-DATA_CURIO_EMERGENCIA = "El Sol es tan grande que dentro de él cabrían 1.3 millones de Tierras."
-
-async def obtener_guion():
-    try:
-        client = genai.Client(api_key=os.getenv('GEMINI_API'))
-        prompt = "Escribe un dato curioso del espacio. Máximo 30 palabras. Solo el texto, sin títulos."
-        res = client.models.generate_content(model="gemini-1.5-flash", contents=prompt)
-        return res.text.strip()
-    except Exception as e:
-        print(f"⚠️ Error Gemini: {e}. Usando dato de emergencia.")
-        return DATA_CURIO_EMERGENCIA
+# Temáticas de alta retención para viralizar
+TEMAS = ["psicología oscura", "datos que podrían salvarte la vida", "curiosidades aterradoras", "misterios sin resolver"]
 
 async def fabricar_video():
     try:
-        # 1. Guion y Voz
-        script = await obtener_guion()
+        # 1. Generar Guion Viral
+        client = genai.Client(api_key=os.getenv('GEMINI_API'))
+        tema = random.choice(TEMAS)
+        prompt = f"Escribe un guion para un YouTube Short de {tema}. Que sea intrigante y directo. Máximo 35 palabras. Solo el texto."
+        res = client.models.generate_content(model="gemini-1.5-flash", contents=prompt)
+        script = res.text.strip()
         print(f"🎙️ Guion: {script}")
+
+        # 2. Voz de Tomas (Neural Argentina)
         await edge_tts.Communicate(script, "es-AR-TomasNeural").save("audio.mp3")
 
-        # 2. Footage (Pexels)
+        # 3. Video de Fondo (Pexels)
         h = {"Authorization": os.getenv('PEXELS_API')}
-        query = random.choice(["galaxy", "nebula", "mars", "earth from space", "stars"])
-        v_res = requests.get(f"https://api.pexels.com/videos/search?query={query}&per_page=1", headers=h).json()
-        video_url = v_res['videos'][0]['video_files'][0]['link']
-        
-        with open("raw_video.mp4", "wb") as f:
-            f.write(requests.get(video_url).content)
+        query = random.choice(["darkness", "mystery", "forest", "rain", "abstract"])
+        v_res = requests.get(f"https://api.pexels.com/videos/search?query={query}&per_page=5", headers=h).json()
+        video_url = random.choice(v_res['videos'])['video_files'][0]['link']
+        with open("raw.mp4", "wb") as f: f.write(requests.get(video_url).content)
 
-        # 3. Procesamiento Profesional (FFmpeg)
-        # Este comando hace 3 cosas: Recorta a 9:16, centra la imagen y ajusta el audio.
-        cmd = (
-            "ffmpeg -y -i raw_video.mp4 -i audio.mp3 "
-            "-vf 'scale=ih*(9/16):ih,boxblur=luma_radius=min(h\,w)/20:luma_power=1:chroma_radius=min(h\,w)/20:chroma_power=1,setsar=1' "
-            "-c:v libx264 -aspect 9:16 -c:a aac -shortest final.mp4"
-        )
-        os.system(cmd)
+        # 4. FFmpeg: Formato Vertical 9:16 y corrección de píxeles (Números Pares)
+        # Esta fórmula asegura que el video siempre sea divisible por 2 para que no falle.
+        os.system("ffmpeg -y -i raw.mp4 -i audio.mp3 -vf 'scale=trunc(ih*(9/16)/2)*2:trunc(ih/2)*2,setsar=1' -c:v libx264 -c:a aac -shortest final.mp4")
 
-        # 4. Subida a YouTube
-        creds = Credentials.from_authorized_user_info(json.loads(os.getenv('YT_TOKEN')))
+        # 5. Subida Automática a YouTube
+        info = json.loads(os.getenv('YT_TOKEN'))
+        creds = Credentials.from_authorized_user_info(info)
         if creds.expired: creds.refresh(Request())
         
-        youtube = build("youtube", "v3", credentials=creds)
-        request = youtube.videos().insert(
+        yt = build("youtube", "v3", credentials=creds)
+        yt.videos().insert(
             part="snippet,status",
             body={
-                "snippet": {
-                    "title": "Dato Espacial del Día #shorts",
-                    "description": "Ciencia y curiosidades diarias. #espacio #astronomia",
-                    "categoryId": "27" # Educación
-                },
+                "snippet": {"title": "Dato del día #shorts #curiosidades", "categoryId": "22"},
                 "status": {"privacyStatus": "public", "selfDeclaredMadeForKids": False}
             },
             media_body=MediaFileUpload("final.mp4", chunksize=-1, resumable=True)
-        )
-        request.execute()
-        print("✅ ¡ÉXITO TOTAL! Video en YouTube.")
+        ).execute()
+        print("🚀 ¡VIDEO PUBLICADO!")
 
     except Exception as e:
-        print(f"❌ FALLO CRÍTICO: {e}")
+        print(f"❌ Error: {e}")
 
 if __name__ == "__main__":
     asyncio.run(fabricar_video())
