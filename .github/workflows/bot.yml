@@ -1,20 +1,30 @@
-name: Bot YouTube Diario
+name: Bot YouTube Pro
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 13 * * *'
+    - cron: '0 13 * * *' # 10:00 AM Argentina aprox.
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4 # Actualizado a v4
+      
       - name: Setup Python
-        uses: actions/setup-python@v4
-        with: {python-version: '3.11'}
-      - name: Install Tools
+        uses: actions/setup-python@v5 # Actualizado a v5
+        with:
+          python-version: '3.11'
+          
+      - name: Install System Tools
         run: |
-          sudo apt-get update && sudo apt-get install -y ffmpeg
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          
+      - name: Install Python Libraries
+        run: |
+          pip install --upgrade pip
           pip install requests edge-tts google-api-python-client google-auth-oauthlib google-genai
+          
       - name: Run Bot
         env:
           GEMINI_API: ${{ secrets.GEMINI_API }}
