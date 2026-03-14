@@ -1,8 +1,6 @@
-name: ViralEngine_V4
+name: ViralEngine_V5
 
 on:
-  # ── Trigger manual con tema elegido por vos ─────────────────────────────────
-  # En GitHub → Actions → ViralEngine_V4 → Run workflow → escribís el tema
   workflow_dispatch:
     inputs:
       tema:
@@ -10,8 +8,6 @@ on:
         required: false
         default: 'aleatorio'
         type: string
-
-  # ── Schedules automáticos (fallback con tema aleatorio) ─────────────────────
   schedule:
     - cron: '0 12 * * *'   # 09:00 Argentina
     - cron: '0 18 * * *'   # 15:00 Argentina
@@ -39,12 +35,7 @@ jobs:
       - name: Instalar dependencias de Python
         run: |
           pip install --upgrade pip -q
-          pip install \
-            requests \
-            edge-tts \
-            google-api-python-client \
-            google-auth-oauthlib \
-            google-genai -q
+          pip install requests edge-tts google-api-python-client google-auth-oauthlib google-genai -q
 
       - name: Ejecutar Viral Engine
         env:
@@ -54,9 +45,7 @@ jobs:
         run: |
           TEMA="${{ github.event.inputs.tema }}"
           if [ "$TEMA" = "aleatorio" ] || [ -z "$TEMA" ]; then
-            echo "▶ Ejecutando con tema aleatorio"
             python main.py
           else
-            echo "▶ Ejecutando con tema: $TEMA"
             python main.py "$TEMA"
           fi
