@@ -1,4 +1,4 @@
-name: ViralEngine_V5
+name: ViralEngine_V6
 
 on:
   workflow_dispatch:
