@@ -1,16 +1,26 @@
-name: ViralEngine_V3
+name: ViralEngine_V4
 
 on:
-  workflow_dispatch: # Permite ejecutarlo manualmente desde GitHub
+  # ── Trigger manual con tema elegido por vos ─────────────────────────────────
+  # En GitHub → Actions → ViralEngine_V4 → Run workflow → escribís el tema
+  workflow_dispatch:
+    inputs:
+      tema:
+        description: 'Tema del video (ej: Séneca sobre el tiempo)'
+        required: false
+        default: 'aleatorio'
+        type: string
+
+  # ── Schedules automáticos (fallback con tema aleatorio) ─────────────────────
   schedule:
-    - cron: '0 12 * * *'  # 09:00 Argentina
-    - cron: '0 18 * * *'  # 15:00 Argentina
-    - cron: '30 23 * * *' # 20:30 Argentina
+    - cron: '0 12 * * *'   # 09:00 Argentina
+    - cron: '0 18 * * *'   # 15:00 Argentina
+    - cron: '30 23 * * *'  # 20:30 Argentina
 
 jobs:
   publicar_short:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Clonar repositorio
@@ -22,21 +32,31 @@ jobs:
           python-version: '3.11'
 
       - name: Instalar dependencias del sistema
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
 
       - name: Instalar dependencias de Python
         run: |
-          pip install --upgrade pip
+          pip install --upgrade pip -q
           pip install \
             requests \
             edge-tts \
             google-api-python-client \
             google-auth-oauthlib \
-            google-genai
+            google-genai -q
 
       - name: Ejecutar Viral Engine
         env:
           GEMINI_API: ${{ secrets.GEMINI_API }}
           PEXELS_API: ${{ secrets.PEXELS_API }}
           YT_TOKEN:   ${{ secrets.YT_TOKEN }}
-        run: python main.py
+        run: |
+          TEMA="${{ github.event.inputs.tema }}"
+          if [ "$TEMA" = "aleatorio" ] || [ -z "$TEMA" ]; then
+            echo "▶ Ejecutando con tema aleatorio"
+            python main.py
+          else
+            echo "▶ Ejecutando con tema: $TEMA"
+            python main.py "$TEMA"
+          fi
