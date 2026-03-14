@@ -1,4 +1,4 @@
-name: ViralEngine_V6
+name: ViralEngine_V7
 
 on:
   workflow_dispatch:
@@ -16,7 +16,7 @@ on:
 jobs:
   publicar_short:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
       - name: Clonar repositorio
