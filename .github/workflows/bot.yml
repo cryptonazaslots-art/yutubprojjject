@@ -1,8 +1,8 @@
-name: ViralEngine_Automation
+name: ViralEngine_V2
 on:
   workflow_dispatch:
   schedule:
-    - cron: '30 23 * * *' # 20:30 hora de Argentina
+    - cron: '30 23 * * *' # 20:30 Argentina
 
 jobs:
   build:
@@ -13,11 +13,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install Tools
+      - name: Install Dependencies
         run: |
           sudo apt-get update && sudo apt-get install -y ffmpeg
           pip install requests edge-tts google-api-python-client google-auth-oauthlib google-genai
-      - name: Run Bot
+      - name: Run Viral Engine
         env:
           GEMINI_API: ${{ secrets.GEMINI_API }}
           PEXELS_API: ${{ secrets.PEXELS_API }}
