@@ -1,30 +1,22 @@
-name: Bot YouTube Pro
+name: ViralEngine_Automation
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 13 * * *' # 10:00 AM Argentina aprox.
+    - cron: '30 23 * * *' # 20:30 hora de Argentina
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4 # Actualizado a v4
-      
+      - uses: actions/checkout@v4
       - name: Setup Python
-        uses: actions/setup-python@v5 # Actualizado a v5
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          
-      - name: Install System Tools
+      - name: Install Tools
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
-          
-      - name: Install Python Libraries
-        run: |
-          pip install --upgrade pip
+          sudo apt-get update && sudo apt-get install -y ffmpeg
           pip install requests edge-tts google-api-python-client google-auth-oauthlib google-genai
-          
       - name: Run Bot
         env:
           GEMINI_API: ${{ secrets.GEMINI_API }}
